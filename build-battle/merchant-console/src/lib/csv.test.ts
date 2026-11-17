@@ -99,15 +99,31 @@ describe("exportFilename", () => {
 
 describe("column selection (NWP-101)", () => {
   it("serializes a requested subset in the requested order", () => {
-    const columns = parseExportColumns("amount,id,status")
-    expect(columns).toEqual(["amount", "id", "status"])
+    const columns = parseExportColumns("status,id,created_at")
+    expect(columns).toEqual(["status", "id", "created_at"])
     expect(toCsv([payment], columns!)).toBe(
-      ["amount,id,status", "$250.00,pay_0001,captured"].join("\n"),
+      ["status,id,created_at", "captured,pay_0001,2026-03-14T10:15:00.000Z"].join("\n"),
     )
   })
 
+  it("never ships an amount without its currency", () => {
+    const columns = parseExportColumns("id,amount,status")
+    expect(columns).toEqual(["id", "amount", "currency", "status"])
+    expect(toCsv([payment], columns!)).toBe(
+      ["id,amount,currency,status", "pay_0001,$250.00,USD,captured"].join("\n"),
+    )
+  })
+
+  it("keeps the requested position of currency when both are asked for", () => {
+    expect(parseExportColumns("currency,id,amount")).toEqual([
+      "currency",
+      "id",
+      "amount",
+    ])
+  })
+
   it("drops a repeated column rather than writing it twice", () => {
-    expect(parseExportColumns("id,amount,id")).toEqual(["id", "amount"])
+    expect(parseExportColumns("id,status,id")).toEqual(["id", "status"])
   })
 
   it("leaves card last four out by default", () => {

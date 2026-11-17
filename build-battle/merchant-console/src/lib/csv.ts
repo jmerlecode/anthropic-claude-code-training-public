@@ -40,6 +40,8 @@ const isExportColumn = (value: string): value is ExportColumn =>
  * - Otherwise: the requested columns in the requested order, duplicates
  *   dropped. Any unknown name, or no columns at all, returns null so the
  *   route can reject the request instead of writing an empty file.
+ * - An amount never ships without its currency: if `amount` is requested
+ *   without `currency`, `currency` is added right after it.
  */
 export function parseExportColumns(raw: string | null): ExportColumn[] | null {
   if (raw === null) return [...DEFAULT_EXPORT_COLUMNS]
@@ -50,7 +52,18 @@ export function parseExportColumns(raw: string | null): ExportColumn[] | null {
     .filter(Boolean)
   if (requested.length === 0 || !requested.every(isExportColumn)) return null
 
-  return [...new Set(requested)]
+  return withCurrency([...new Set(requested)])
+}
+
+/** Adds `currency` right after `amount` when it is missing. */
+export function withCurrency(columns: ExportColumn[]): ExportColumn[] {
+  const amountAt = columns.indexOf("amount")
+  if (amountAt === -1 || columns.includes("currency")) return columns
+  return [
+    ...columns.slice(0, amountAt + 1),
+    "currency",
+    ...columns.slice(amountAt + 1),
+  ]
 }
 
 export const EXPORT_SCOPES = ["current", "all"] as const

@@ -17,6 +17,7 @@ import {
   EXPORT_COLUMNS,
   ExportColumn,
   ExportScope,
+  withCurrency,
 } from "@/lib/csv"
 import { Download } from "lucide-react"
 import { useState } from "react"
@@ -56,11 +57,16 @@ export function ExportDialog({
 
   const toggle = (column: ExportColumn, checked: boolean) =>
     setColumns((current) =>
-      // Keep the canonical column order whatever order boxes are ticked in.
-      EXPORT_COLUMNS.filter((c) =>
-        c === column ? checked : current.includes(c),
+      withCurrency(
+        // Keep the canonical column order whatever order boxes are ticked in.
+        EXPORT_COLUMNS.filter((c) =>
+          c === column ? checked : current.includes(c),
+        ),
       ),
     )
+
+  // The server adds currency to any export with amount; the dialog shows it.
+  const currencyLocked = columns.includes("amount")
 
   const params = new URLSearchParams(scope === "current" ? filterQuery : "")
   params.set("scope", scope)
@@ -135,10 +141,21 @@ export function ExportDialog({
                   <input
                     type="checkbox"
                     checked={columns.includes(column)}
+                    disabled={column === "currency" && currencyLocked}
+                    aria-describedby={
+                      column === "currency" && currencyLocked
+                        ? "currency-locked-note"
+                        : undefined
+                    }
                     onChange={(event) => toggle(column, event.target.checked)}
-                    className="size-4 accent-blue-600"
+                    className="size-4 accent-blue-600 disabled:opacity-60"
                   />
                   {COLUMN_LABELS[column]}
+                  {column === "currency" && currencyLocked && (
+                    <span id="currency-locked-note" className="text-gray-500">
+                      (included with Amount)
+                    </span>
+                  )}
                 </label>
               ))}
             </div>
